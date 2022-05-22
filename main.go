@@ -12,7 +12,8 @@ func main() {
 	source := make(chan rxgo.Item)
 	observable := rxgo.FromEventSource(source, rxgo.WithBackPressureStrategy(rxgo.Block))
 
-	ctx, cancel := context.WithCancel(context.Background())
+	parent := context.Background()
+	ctx, cancel := context.WithCancel(parent)
 
 	var received []int
 
