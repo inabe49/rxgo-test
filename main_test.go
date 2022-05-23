@@ -4,10 +4,11 @@ import (
 	"context"
 	"github.com/reactivex/rxgo/v2"
 	"sync"
+	"testing"
 	"time"
 )
 
-func main() {
+func TestCancel(t *testing.T) {
 	var mu sync.Mutex
 	source := make(chan rxgo.Item)
 	observable := rxgo.FromEventSource(source, rxgo.WithBackPressureStrategy(rxgo.Block))
@@ -15,7 +16,7 @@ func main() {
 	parent := context.Background()
 	ctx, cancel := context.WithCancel(parent)
 
-	var received []int
+	received := []int{}
 
 	wg := &sync.WaitGroup{}
 
@@ -25,23 +26,20 @@ func main() {
 	wg.Add(1)
 	go func() {
 		<-observable.ForEach(func(i interface{}) {
-			println(i.(int))
 			mu.Lock()
 			defer mu.Unlock()
 			received = append(received, i.(int))
 		}, func(err error) {
-			panic(err)
+			t.Fatal(err)
 		}, func() {
-			println("finish foreach")
+			println("finish")
 		}, rxgo.WithContext(ctx))
-
-		println("finish receive")
 		wg.Done()
 	}()
 
 	wg.Add(1)
 	go func() {
-		<-time.After(500 * time.Millisecond)
+		<-time.After(100 * time.Millisecond)
 
 		source <- rxgo.Of(3)
 		source <- rxgo.Of(4)
@@ -57,10 +55,10 @@ func main() {
 	wg.Wait()
 
 	if len(received) != 2 {
-		panic(received)
+		t.Fatal(received)
 	}
 
 	if received[0] != 3 || received[1] != 4 {
-		panic(received)
+		t.Fatal()
 	}
 }
